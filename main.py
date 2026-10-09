@@ -34,7 +34,7 @@ def ensure_config() -> Path:
 def ensure_wg_config(config: configparser.ConfigParser):
     if not Path(config["General"]["WIREGUARD_CONFIG_FILE"]).exists():
         raise FileNotFoundError(
-            f"Wireguard config file not found on Path {config["General"]["WIREGUARD_CONFIG_FILE"]}"
+            "Wireguard config file not found on Path" + config["General"]["WIREGUARD_CONFIG_FILE"]
         )
 
 def load_config() -> configparser.ConfigParser:
@@ -150,6 +150,7 @@ def add_peer_to_wg0(config: configparser.ConfigParser, client_name: str,
     new_content = content.rstrip("\n") + "\n\n" + peer_block
     tmp = wg_path.with_suffix(".conf.tmp")
     tmp.write_text(new_content, encoding="utf-8")
+    tmp.chmod(wg_path.stat().st_mode & 0o777)
     tmp.replace(wg_path)
 
 def create_client_folder(clients_dir: Path, client_name: str, keys: dict,
@@ -295,7 +296,9 @@ def generate_conf_from_sec(client_dir: Path,
     public_key = run_wg(["pubkey"], private_key)
 
     expected_pub = client_dir / "pub.key"
-    if expected_pub.exists() and expected_pub.read_text().strip() == public_key:
+    print(expected_pub.read_text().strip())
+    print(public_key)
+    if expected_pub.exists() and expected_pub.read_text().strip() != public_key:
         raise ValueError(f"sec.key in {client_dir} does not match pub.key")
 
     peer = next(
